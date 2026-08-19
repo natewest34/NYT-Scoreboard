@@ -564,9 +564,31 @@
     color:var(--ink-soft);
     margin-top:5px;
   }
+
+  /* Stale-version refresh banner */
+  .refresh-banner{
+    display:none;
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    letter-spacing:.02em;
+    padding:10px 14px;
+    text-align:center;
+    cursor:pointer;
+    border-bottom:2px solid var(--gold);
+  }
+  .refresh-banner.show{display:block;}
+  .refresh-banner strong{color:var(--gold);}
 </style>
 </head>
 <body>
+<div class="refresh-banner" id="refresh-banner" onclick="location.reload()">
+  <strong>New version available.</strong> Tap to refresh.
+</div>
 <div class="wrap">
 
   <div class="masthead">
@@ -690,6 +712,35 @@ const SQUARE_LINE_RE = /^[\u2B1B\u2B1C\u{1F7E5}-\u{1F7EB}\uFE0F]+$/u;
 // 4 tiles wide — used to tell the two kinds of blocks apart.
 const SQUARE_TOKEN_RE = /[\u2B1B\u2B1C\u{1F7E5}-\u{1F7EB}]\uFE0F?/gu;
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// ---- Stale-cache detection ----
+// GitHub Pages + iOS/Android home-screen caching means people can get stuck
+// on an old copy of this page indefinitely. Bump this string every time you
+// deploy a change; the running page then notices a mismatch against the
+// live copy on the server and shows a "tap to refresh" banner instead of
+// silently serving stale JS against fresh JSONBin data.
+const APP_VERSION = '2026-08-19.2';
+
+let versionCheckInFlight = false;
+async function checkForUpdate(){
+  if(versionCheckInFlight) return;
+  versionCheckInFlight = true;
+  try{
+    // Cache-bust with a query param and no-store so we're comparing against
+    // what's actually live, not another cached copy of this same request.
+    const res = await fetch(`${location.pathname}?_v=${Date.now()}`, { cache: 'no-store' });
+    if(!res.ok) return;
+    const text = await res.text();
+    const m = text.match(/const APP_VERSION\s*=\s*'([^']+)'/);
+    if(m && m[1] && m[1] !== APP_VERSION){
+      document.getElementById('refresh-banner').classList.add('show');
+    }
+  }catch(e){
+    // offline or blocked — just skip this check, we'll try again later
+  }finally{
+    versionCheckInFlight = false;
+  }
+}
 
 async function fetchRemoteState(){
   try{
@@ -1829,6 +1880,16 @@ document.getElementById('f-submit-wordle').addEventListener('input', updateSubmi
 document.getElementById('f-submit-connections').addEventListener('input', updateSubmitPreview);
 document.getElementById('f-submit-points').addEventListener('input', updateSubmitPreview);
 document.getElementById('f-submit-date').addEventListener('change', changeSubmitDate);
+
+// Check for a newer deployed version whenever the tab comes back into
+// view or regains focus (the common "left it open overnight" case), plus
+// a slow background poll for anyone who just leaves the tab open and
+// visible for a long stretch.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') checkForUpdate();
+});
+window.addEventListener('focus', checkForUpdate);
+setInterval(checkForUpdate, 5 * 60 * 1000);
 
 load();
 </script>

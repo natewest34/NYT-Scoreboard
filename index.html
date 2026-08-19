@@ -1207,17 +1207,27 @@ function renderHistory(){
         <div>${e.players.join(' & ')}${e.players.length > 1 ? '<span class="tie-tag">TIE</span>' : ''}</div>
       </div>
       <div class="h-pts">+${e.points}</div>
-      ${isAdmin ? `<button class="danger" onclick="removeEntry(${e.id})">Remove</button>` : '<div></div>'}
+      ${isAdmin ? `<button class="danger" onclick="removeEntry(${e.id}, this)">Remove</button>` : '<div></div>'}
     </div>
   `).join('');
 }
 
-async function removeEntry(id){
-  state.entries = state.entries.filter(e => e.id !== id);
-  render();
-  // Tell save() this id was deleted on purpose, so the merge step doesn't
-  // pull it back in from whatever's still sitting on the remote copy.
-  await save([id]);
+const removalsInFlight = new Set();
+
+async function removeEntry(id, btn){
+  if(removalsInFlight.has(id)) return; // ignore a double-tap on the same row
+  removalsInFlight.add(id);
+  if(btn) btn.disabled = true; // belt-and-suspenders — render() below normally
+                                // removes this button from the DOM anyway
+  try{
+    state.entries = state.entries.filter(e => e.id !== id);
+    render();
+    // Tell save() this id was deleted on purpose, so the merge step doesn't
+    // pull it back in from whatever's still sitting on the remote copy.
+    await save([id]);
+  }finally{
+    removalsInFlight.delete(id);
+  }
 }
 
 function parseWordleScore(text){
@@ -1451,7 +1461,10 @@ function updateSubmitPreview(){
   }
 }
 
+let submitInFlight = false;
+
 async function submitScore(){
+  if(submitInFlight) return; // ignore a double-tap while the last submit is still saving
   if(!selectedSubmitter){
     showSubmitMsg('Tap your name first.');
     return;
@@ -1514,11 +1527,22 @@ async function submitScore(){
 
   renderSubmitStatus();
   render();
-  await save();
 
-  showSubmitMsg(winnerSet
-    ? `Score submitted! ${date === todayISO() ? "Today's" : "That day's"} winner has been recalculated.`
-    : 'Score submitted! Waiting on the rest of the group.');
+  submitInFlight = true;
+  const btn = document.getElementById('submit-score-btn');
+  const prevLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  try{
+    await save();
+    showSubmitMsg(winnerSet
+      ? `Score submitted! ${date === todayISO() ? "Today's" : "That day's"} winner has been recalculated.`
+      : 'Score submitted! Waiting on the rest of the group.');
+  }finally{
+    submitInFlight = false;
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+  }
 }
 
 function showSubmitMsg(text){

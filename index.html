@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYT Competition — Standings</title>
+
+<!-- Homescreen / PWA icons -->
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/favicon-16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#1c1a16">
+
+<!-- iOS "Add to Home Screen" behavior: launches without Safari chrome -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NYT Comp">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,500;0,600;0,700;1,500&family=Roboto+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --paper:#f6f3ea;
+    --paper-line: #d8d2c0;
+    --paper-card:#fffdf7;
+    --paper-accent:#fbf5e6;
+    --ink:#1c1a16;
+    --ink-soft:#5a5648;
+    --red:#b23a2e;
+    --gold:#a9822f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#161410;
+      --paper-line:#3a3628;
+      --paper-card:#1e1b14;
+      --paper-accent:#241f12;
+      --ink:#f1ede0;
+      --ink-soft:#b3ab94;
+      --red:#e2776a;
+      --gold:#dcb45c;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{color-scheme: light dark;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+
+  /* Masthead */
+  .masthead{
+    text-align:center;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:6px;
+  }
+  .kicker{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--red);
+    margin-bottom:6px;
+  }
+  h1{
+    font-size:34px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:.01em;
+  }
+  .dateline{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:8px;
+    display:flex;
+    justify-content:space-between;
+    border-top:1px solid var(--paper-line);
+    padding-top:6px;
+  }
+
+  /* Record callout */
+  .record{
+    margin-top:18px;
+    border:1px solid var(--gold);
+    background:var(--paper-accent);
+    padding:10px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .record-label{
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .record-value{
+    font-family:'Roboto Mono', monospace;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+    line-height:1.5;
+  }
+
+  /* Leaderboard */
+  .board{margin-top:26px;}
+  .board-title{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .board-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--paper-line);
+  }
+  .row{
+    display:grid;
+    grid-template-columns:34px 1fr auto;
+    align-items:baseline;
+    gap:12px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--paper-line);
+  }
+  .row:first-child{border-top:1px solid var(--paper-line);}
+  .rank{
+    font-family:'Roboto Mono', monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .row.first .rank{color:var(--gold); font-weight:700;}
+  .row.tie-row .name{ font-style:italic; color:var(--red); }
+  .row.tie-row .rank{ color:var(--red); }
+  .row.eliminated-row{ opacity:0.55; }
+  .row.eliminated-row .name{ text-decoration:line-through; }
+  .name{font-size:19px; font-weight:600;}
+  .pts-block{text-align:right;}
+  .wins{
+    font-family:'Roboto Mono', monospace;
+    font-size:18px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .wins small{font-weight:400; color:var(--ink-soft); font-size:11px; margin-left:3px; text-transform:uppercase; letter-spacing:.05em;}
+  .points-sub{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .empty{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    padding:14px 4px;
+    text-align:center;
+  }
+
+  .trophy-row{
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:baseline;
+    gap:12px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--paper-line);
+  }
+  .trophy-row:first-child{border-top:1px solid var(--paper-line);}
+  .trophy-name{font-size:17px; font-weight:600;}
+  .trophy-count{
+    font-family:'Roboto Mono', monospace;
+    font-size:14px;
+    font-weight:700;
+    color:var(--gold);
+    white-space:nowrap;
+  }
+  .trophy-count.zero{color:var(--ink-soft); font-weight:400;}
+  .trophy-row.clickable{cursor:pointer;}
+  .trophy-row.clickable:active{opacity:0.7;}
+  .trophy-detail{
+    display:none;
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    padding:8px 4px 10px;
+    line-height:1.5;
+  }
+  .trophy-detail.open{display:block;}
+
+  /* Entry form */
+  .entry{
+    margin-top:34px;
+    border:1px solid var(--ink);
+    padding:18px;
+    background:var(--paper-card);
+  }
+  .entry-title{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+    color:var(--ink);
+  }
+  label{
+    display:block;
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .field{margin-bottom:14px;}
+  .paste-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .paste-grid .field{margin-bottom:0;}
+  select, input[type=number], input[type=date], input[type=text]{
+    width:100%;
+    box-sizing:border-box;
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:16px;
+    padding:9px 8px;
+    border:1px solid var(--ink);
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:0;
+  }
+  input[type=date]{
+    -webkit-appearance:none;
+    appearance:none;
+    min-width:0;
+  }
+  input[type=date]::-webkit-date-and-time-value{
+    text-align:left;
+  }
+  .winner-picker{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    font-family:'Roboto Mono', monospace;
+    font-size:13px;
+    padding:8px 12px;
+    border:1px solid var(--ink);
+    background:var(--paper);
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+  }
+  .chip.selected{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .hint{
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+  button{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    padding:11px 16px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+  }
+  button:active{transform:translateY(1px);}
+  button.secondary{
+    background:transparent;
+    color:var(--ink);
+  }
+  button.danger{
+    background:transparent;
+    color:var(--red);
+    border-color:var(--red);
+    font-size:10px;
+    padding:4px 8px;
+  }
+  .add-row{display:flex; justify-content:flex-end; gap:10px; margin-top:14px;}
+  .calc-result{
+    margin-top:14px;
+    border-top:1px solid var(--paper-line);
+    padding-top:12px;
+  }
+  .calc-line{
+    display:flex;
+    justify-content:space-between;
+    font-family:'Roboto Mono', monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:3px 0;
+  }
+  .calc-total{
+    display:flex;
+    justify-content:space-between;
+    font-family:'Roboto Mono', monospace;
+    font-size:16px;
+    font-weight:700;
+    color:var(--ink);
+    padding:8px 0 4px;
+    border-top:1px solid var(--paper-line);
+    margin-top:6px;
+  }
+  .calc-error{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    color:var(--red);
+  }
+  .calc-use-btn{margin-top:10px; width:100%;}
+  .msg{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--red);
+    min-height:14px;
+    margin-top:8px;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    margin-top:18px;
+    border:1px solid var(--ink);
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:11px 6px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .tab.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .tab:not(:last-child){border-right:1px solid var(--ink);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* Submit screen */
+  .submit-status{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:14px;
+    line-height:1.7;
+  }
+  .submit-status .done{color:var(--gold);}
+  .who-picker{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .submit-preview{
+    margin-top:12px;
+    border-top:1px solid var(--paper-line);
+    padding-top:12px;
+  }
+  .submit-preview .calc-error{margin-bottom:6px;}
+
+  /* Today's Results */
+  .result-card{
+    border-bottom:1px solid var(--paper-line);
+    padding:12px 2px;
+  }
+  .result-card:first-child{
+    padding-top:2px;
+  }
+  .result-card:last-child{
+    border-bottom:none;
+    padding-bottom:2px;
+  }
+  .result-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+  }
+  .result-name{
+    font-size:17px;
+    font-weight:600;
+  }
+  .result-card.first-place .result-name{
+    color:var(--gold);
+  }
+  .result-total{
+    font-family:'Roboto Mono', monospace;
+    font-size:15px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .result-breakdown{
+    font-family:'Roboto Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    display:flex;
+    gap:14px;
+    margin-top:3px;
+  }
+  .result-emoji{
+    margin:8px 0 0;
+    font-family:'Roboto Mono', monospace;
+    font-size:14px;
+    line-height:1.35;
+    white-space:pre;
+  }
+
+  /* History */
+  .history{margin-top:34px;}
+  .history-list{max-height:280px; overflow-y:auto;}
+  .h-row{
+    display:grid;
+    grid-template-columns:76px 1fr auto auto;
+    align-items:center;
+    gap:10px;
+    padding:9px 4px;
+    border-bottom:1px solid var(--paper-line);
+    font-size:14px;
+  }
+  .h-date{
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+  }
+  .tie-tag{
+    display:inline-block;
+    font-family:'Roboto Mono', monospace;
+    font-size:9px;
+    letter-spacing:.06em;
+    color:var(--red);
+    border:1px solid var(--red);
+    padding:1px 5px;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .h-pts{
+    font-family:'Roboto Mono', monospace;
+    font-weight:700;
+    font-size:13px;
+  }
+
+  .loading{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:center;
+    padding:30px 0;
+  }
+  footer{
+    margin-top:30px;
+    text-align:center;
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    letter-spacing:.05em;
+  }
+
+  .admin-row{
+    margin-top:34px;
+    display:flex;
+    justify-content:center;
+  }
+
+  /* Stats tab */
+  .stats-empty{
+    font-family:'Roboto Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    padding:20px 4px;
+    text-align:center;
+  }
+  .stats-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:18px;
+  }
+  .stat-card{
+    border:1px solid var(--paper-line);
+    background:var(--paper-card);
+    padding:12px 14px;
+  }
+  .stat-card.wide{grid-column:1 / -1;}
+  .stat-label{
+    font-family:'Roboto Mono', monospace;
+    font-size:9px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .stat-value{
+    font-family:'Roboto Mono', monospace;
+    font-size:22px;
+    font-weight:700;
+    line-height:1.1;
+  }
+  .stat-sub{
+    font-family:'Roboto Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    line-height:1.5;
+  }
+  .dist-bars{
+    display:flex;
+    align-items:flex-end;
+    gap:6px;
+    height:80px;
+    margin-top:10px;
+  }
+  .dist-bar-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    height:100%;
+  }
+  .dist-bar{
+    width:100%;
+    background:var(--gold);
+    min-height:2px;
+  }
+  .dist-bar-col.fail .dist-bar{ background:var(--red); }
+  .dist-count{
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-bottom:3px;
+  }
+  .dist-label{
+    font-family:'Roboto Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-top:5px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="kicker">Est. 2026 · Points Contested Daily</div>
+    <h1>NYT Competition</h1>
+    <div class="dateline">
+      <span id="today-label">—</span>
+      <span>Standings</span>
+    </div>
+  </div>
+
+  <div class="record" id="record-block" style="display:none;">
+    <div class="record-label">Record Day (Most Points)</div>
+    <div class="record-value" id="record-value">—</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="submit" onclick="switchTab('submit')">Submit Score</div>
+    <div class="tab" data-tab="standings" onclick="switchTab('standings')">Standings</div>
+    <div class="tab" data-tab="stats" onclick="switchTab('stats')">Stats</div>
+  </div>
+
+  <div class="panel active" id="panel-submit">
+    <div class="entry">
+      <div class="entry-title">Submit a Score</div>
+      <div class="field">
+        <label for="f-submit-date">Date</label>
+        <input type="date" id="f-submit-date">
+      </div>
+      <div class="submit-status" id="submit-status">Loading…</div>
+      <div class="field">
+        <label>Who are you?</label>
+        <div class="who-picker" id="who-picker"></div>
+      </div>
+      <div id="submit-form-body" style="display:none;">
+        <div class="paste-grid">
+          <div class="field">
+            <label for="f-submit-wordle">Wordle</label>
+            <textarea id="f-submit-wordle" rows="6" placeholder="Paste your Wordle share text" style="width:100%; box-sizing:border-box; resize:vertical; font-family:'Roboto Mono', monospace; font-size:13px; padding:8px 6px; border:1px solid var(--ink); background:var(--paper); color:var(--ink);"></textarea>
+          </div>
+          <div class="field">
+            <label for="f-submit-connections">Connections</label>
+            <textarea id="f-submit-connections" rows="6" placeholder="Paste your Connections share text" style="width:100%; box-sizing:border-box; resize:vertical; font-family:'Roboto Mono', monospace; font-size:13px; padding:8px 6px; border:1px solid var(--ink); background:var(--paper); color:var(--ink);"></textarea>
+          </div>
+        </div>
+        <div class="hint" style="margin-bottom:10px;">Or skip pasting and just type your total points:</div>
+        <div class="field">
+          <label for="f-submit-points">Points (optional if you pasted above)</label>
+          <input type="number" id="f-submit-points" placeholder="e.g. 6" step="1">
+        </div>
+        <div class="submit-preview" id="submit-preview"></div>
+        <div class="add-row">
+          <button id="submit-score-btn">Submit Score</button>
+        </div>
+        <div class="msg" id="submit-msg"></div>
+      </div>
+    </div>
+
+    <div class="entry" id="today-results-block" style="display:none;">
+      <div class="entry-title" id="today-results-title">Today's Results</div>
+      <div id="today-results-body"></div>
+    </div>
+
+    <div class="entry" id="bulk-block">
+      <div class="entry-title">Bulk Import</div>
+      <div class="hint" style="margin-bottom:10px;">Paste lines like: <code>7/13/26 Michaela (10 points)</code> or <code>6/29/26 Michaela, Thomas (8 pts)</code> — one per line.</div>
+      <div class="field">
+        <label for="f-bulk">Lines</label>
+        <textarea id="f-bulk" rows="6" style="width:100%; box-sizing:border-box; resize:vertical; font-family:'Source Serif 4', Georgia, serif; font-size:15px; padding:9px 8px; border:1px solid var(--ink); background:var(--paper); color:var(--ink);"></textarea>
+      </div>
+      <div class="add-row">
+        <button id="bulk-btn">Import lines</button>
+      </div>
+      <div class="msg" id="bulk-msg"></div>
+    </div>
+
+    <div class="history">
+      <div class="board-title">Recent Log</div>
+      <div class="history-list" id="history-body"><div class="loading">Loading log…</div></div>
+    </div>
+
+    <div class="admin-row">
+      <button class="secondary" id="admin-btn">Admin</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-standings">
+
+  <div class="board">
+    <div class="board-title" id="season-title">Season Standings</div>
+    <div class="hint" id="season-hint" style="display:none; margin-bottom:8px;">Struck-through names can no longer catch the leader with the days left this month</div>
+    <div id="season-board-body"><div class="loading">Loading standings…</div></div>
+  </div>
+
+  <div class="board">
+    <div class="board-title">All-Time Standings</div>
+    <div id="board-body"><div class="loading">Loading standings…</div></div>
+  </div>
+
+  <div class="board">
+    <div class="board-title">Trophy Case — Season Titles</div>
+    <div id="trophy-body"><div class="loading">Loading trophy case…</div></div>
+  </div>
+
+  </div>
+
+  <div class="panel" id="panel-stats">
+    <div class="board" style="margin-top:0;">
+      <div class="board-title">Personal Stats</div>
+      <div class="field">
+        <label>Whose stats?</label>
+        <div class="who-picker" id="stats-picker"></div>
+      </div>
+      <div id="stats-body"><div class="stats-empty">Pick a name above to see their stats.</div></div>
+    </div>
+  </div>
+
+	<footer>Tap an entry to remove it · Yesterday's winner locks in when someone opens the app</footer>
+</div>
+
+<script src="config.js"></script>
+<script>
+// JSONBIN_API_KEY, JSONBIN_BIN_ID, and DEFAULT_PLAYERS come from config.js
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+const TIE_LABEL = 'Ties';
+const NICKNAMES = { 'nate': 'Nathan' };
+// Matches a line made up entirely of the colored/black/white square emoji
+// used in Wordle (⬛⬜🟩🟨 or the colorblind 🟧🟦 variant) and Connections
+// (🟨🟩🟦🟪) share-text pastes, so we can pull the little grid back out
+// of someone's raw paste for display.
+const SQUARE_LINE_RE = /^[\u2B1B\u2B1C\u{1F7E5}-\u{1F7EB}\uFE0F]+$/u;
+// Counts square-emoji "tiles" in a row (optional variation selector after
+// each). Wordle rows are always 5 tiles wide; Connections rows are always
+// 4 tiles wide — used to tell the two kinds of blocks apart.
+const SQUARE_TOKEN_RE = /[\u2B1B\u2B1C\u{1F7E5}-\u{1F7EB}]\uFE0F?/gu;
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+async function fetchRemoteState(){
+  try{
+    const res = await fetch(`${JSONBIN_URL}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.record || null;
+  }catch(e){
+    return null;
+  }
+}
+
+// Merges a freshly-fetched remote state into our local state right before
+// writing, so a save never blindly clobbers changes someone else made
+// between our last load and now. Returns the merged state plus the set of
+// dates whose submissions actually changed, so the caller can recompute
+// just those winners instead of re-rolling every date's tiebreak on every
+// save.
+function mergeState(base, remote, deletedEntryIds){
+  if(!remote) return { state: base, changedDates: new Set() };
+  const deleted = new Set(deletedEntryIds || []);
+
+  const merged = {
+    players: Array.from(new Set([...(base.players||[]), ...(remote.players||[])])),
+    submissions: [],
+    finalizedDates: Array.from(new Set([...(base.finalizedDates||[]), ...(remote.finalizedDates||[])])),
+    entries: []
+  };
+
+  const baseSubMap = new Map((base.submissions||[]).map(s => [`${s.date}|${s.player}`, s]));
+  const subMap = new Map();
+  [...(remote.submissions||[]), ...(base.submissions||[])].forEach(s => {
+    const key = `${s.date}|${s.player}`;
+    const existing = subMap.get(key);
+    if(!existing || new Date(s.submittedAt) >= new Date(existing.submittedAt)){
+      subMap.set(key, s);
+    }
+  });
+  merged.submissions = Array.from(subMap.values());
+
+  const changedDates = new Set();
+  subMap.forEach((s, key) => {
+    const baseS = baseSubMap.get(key);
+    if(!baseS || baseS.submittedAt !== s.submittedAt) changedDates.add(s.date);
+  });
+
+  // Entries: union by id (covers bulk-import entries, which have no
+  // backing submission and can't be recomputed from submissions below).
+  // A plain union has no concept of deletion — if remote still has an id
+  // we just removed locally (e.g. via the admin Remove button), it would
+  // otherwise get merged straight back in. `deleted` is how the caller
+  // tells us "no, this id is gone on purpose" so it always wins, even if
+  // the remote copy hasn't caught up yet.
+  const entryMap = new Map();
+  [...(remote.entries||[]), ...(base.entries||[])].forEach(e => entryMap.set(e.id, e));
+  deleted.forEach(id => entryMap.delete(id));
+  merged.entries = Array.from(entryMap.values());
+
+  return { state: merged, changedDates };
+}
+
+// Same finalize/recompute decision submitScore() and finalizeCheck() use,
+// pulled out so the merge step can apply it to just the dates a remote
+// change actually touched.
+function reconcileDate(date){
+  const subs = submissionsForDate(date);
+  const isPast = date < todayISO();
+  const allIn = subs.length > 0 && subs.length >= state.players.length;
+  const alreadyFinalized = (state.finalizedDates || []).includes(date);
+  if(alreadyFinalized || isPast || allIn){
+    markFinalized(date);
+    upsertEntryForDate(date);
+  }
+}
+
+async function save(deletedEntryIds){
+  try{
+    const remote = await fetchRemoteState();
+    const { state: mergedState, changedDates } = mergeState(state, remote, deletedEntryIds);
+    state = mergedState;
+    changedDates.forEach(reconcileDate);
+
+    const res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      },
+      body: JSON.stringify(state)
+    });
+    if(!res.ok){
+      showSubmitMsg('Could not save — check your JSONBin config.');
+      return;
+    }
+    // Reflect the merged result immediately — remote may have had a
+    // submission or entry we didn't have locally.
+    renderSubmitPicker();
+    renderStatsPicker();
+    render();
+  }catch(e){
+    showSubmitMsg('Could not save — try again.');
+  }
+}
+
+// Recomputes (replacing any existing) winner entry for a single date from
+// whatever's currently in state.submissions for that date. Called any time
+// a submission for a date changes — including after that date was already
+// "finalized" — so past scores can be added or corrected later and the
+// standings just pick up the new result instead of staying locked forever.
+function upsertEntryForDate(date){
+  state.entries = state.entries.filter(e => e.date !== date);
+  const subs = submissionsForDate(date);
+  if(subs.length === 0) return false;
+
+  const max = Math.max(...subs.map(s => s.totalPoints));
+  const tied = subs.filter(s => s.totalPoints === max).map(s => s.player);
+  const winner = tied.length > 1 ? tied[Math.floor(Math.random() * tied.length)] : tied[0];
+  state.entries.push({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    date,
+    players: [winner],
+    points: max
+  });
+  return true;
+}
+
+// A day finalizes once everyone has submitted, or once the day has passed
+// (that second case catches anyone who forgot to submit — the day locks
+// in as soon as someone next opens the site). finalizedDates is just used to show
+// the "winner calculated" note and to avoid the backstop re-running every
+// load — it is NOT a lock: submitScore can still add/update scores for a
+// finalized date any time, via upsertEntryForDate above.
+function finalizeCheck(){
+  const today = todayISO();
+  const dates = new Set(state.submissions.map(s => s.date));
+  let touched = false;
+
+  dates.forEach(date => {
+    if(state.finalizedDates.includes(date)) return;
+
+    const subs = submissionsForDate(date);
+    const isPast = date < today;
+    const allIn = subs.length > 0 && subs.length >= state.players.length;
+    if(!isPast && !allIn) return;
+
+    state.finalizedDates.push(date);
+    touched = true;
+    upsertEntryForDate(date);
+  });
+
+  return touched;
+}
+
+let state = { players: DEFAULT_PLAYERS.slice(), entries: [], submissions: [], finalizedDates: [] };
+let isAdmin = false;
+let selectedSubmitter = null;
+let selectedStatsPlayer = null;
+let selectedSubmitDate = todayISO();
+
+function todayISO(){
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off*60000).toISOString().slice(0,10);
+}
+
+function fmtDateLabel(){
+  const d = new Date();
+  return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+}
+
+function resolveName(raw){
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+  if(NICKNAMES[lower]) return NICKNAMES[lower];
+  const match = state.players.find(p => p.toLowerCase() === lower);
+  if(match) return match;
+  // not a known player — title-case whatever was typed and add them to roster
+  const titled = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  if(!state.players.includes(titled)) state.players.push(titled);
+  return titled;
+}
+
+function parseDate(raw){
+  const parts = raw.trim().split('/');
+  if(parts.length !== 3) return null;
+  let [m, d, y] = parts.map(x => x.trim());
+  if(y.length === 2) y = '20' + y;
+  m = m.padStart(2,'0'); d = d.padStart(2,'0');
+  if(Number(m) < 1 || Number(m) > 12 || Number(d) < 1 || Number(d) > 31) return null;
+  return `${y}-${m}-${d}`;
+}
+
+function parseBulkLine(line){
+  const cleaned = line.trim();
+  if(!cleaned) return null;
+  const m = cleaned.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})\s*:?\s+(.+?)\s*\(\s*(\d+)\s*(?:points?|pts?)\s*\)\s*$/i);
+  if(!m) return { error: `Could not parse: "${cleaned}"` };
+  const iso = parseDate(m[1]);
+  if(!iso) return { error: `Bad date: "${cleaned}"` };
+  const names = m[2].split(',').map(n => resolveName(n));
+  const points = Number(m[3]);
+  if(names.length === 0 || Number.isNaN(points)) return { error: `Could not parse: "${cleaned}"` };
+  return { date: iso, players: names, points };
+}
+
+function fmtShortDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${m}/${d}/${y.slice(2)}`;
+}
+
+function seasonKey(iso){
+  return iso.slice(0,7); // "YYYY-MM"
+}
+
+function seasonLabel(key){
+  const [y,m] = key.split('-');
+  const d = new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+}
+
+function daysRemainingInSeason(){
+  const iso = todayISO();
+  const [y, m, d] = iso.split('-').map(Number);
+  // new Date(y, m, 0) rolls back to the last day of month m (1-indexed),
+  // which correctly handles 28/29/30/31-day months and leap years automatically.
+  const totalDays = new Date(y, m, 0).getDate();
+  const remaining = totalDays - d + 1; // inclusive of today
+  return { totalDays, remaining };
+}
+
+// Days between two ISO ("YYYY-MM-DD") date strings, using UTC noon to
+// sidestep DST edge cases. b - a, in whole days.
+function daysBetweenISO(a, b){
+  const toUTC = (iso) => {
+    const [y,m,d] = iso.split('-').map(Number);
+    return Date.UTC(y, m-1, d);
+  };
+  return Math.round((toUTC(b) - toUTC(a)) / 86400000);
+}
+
+function dayOfWeekFromISO(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1, d)).getUTCDay();
+}
+
+async function load(){
+  document.getElementById('today-label').textContent = fmtDateLabel();
+  document.getElementById('f-submit-date').value = selectedSubmitDate;
+
+  try{
+    const res = await fetch(`${JSONBIN_URL}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(res.ok){
+      const data = await res.json();
+      const parsed = data.record;
+      if(parsed && parsed.players && parsed.entries){
+        state = parsed;
+        // migrate old single-player entries to players array, drop any legacy game field
+        state.entries = state.entries.map(e => {
+          const players = e.players || (e.player ? [e.player] : []);
+          return { id:e.id, date:e.date, players, points:e.points };
+        });
+        if(!state.submissions) state.submissions = [];
+        if(!state.finalizedDates) state.finalizedDates = [];
+      }
+    }
+  }catch(e){
+    // couldn't reach JSONBin — using defaults for now
+  }
+
+  // Catch up on any day that finished since the last time anyone opened the
+  // site — this is the only place finalization happens now.  
+  const touched = finalizeCheck();
+  if(touched) await save();
+
+  renderSubmitPicker();
+  renderStatsPicker();
+  render();
+}
+
+function markFinalized(date){
+  if(!state.finalizedDates) state.finalizedDates = [];
+  if(!state.finalizedDates.includes(date)) state.finalizedDates.push(date);
+}
+
+function submissionsForDate(date){
+  return state.submissions.filter(s => s.date === date);
+}
+
+function toggleAdmin(){
+  isAdmin = !isAdmin;
+  document.getElementById('admin-btn').textContent = isAdmin ? 'Exit Admin' : 'Admin';
+  renderHistory();
+}
+
+function rawTotals(entries){
+  const t = {};
+  state.players.forEach(p => t[p] = { wins:0, points:0 });
+  let tie = { wins:0, points:0 };
+
+  entries.forEach(e => {
+    if(e.players.length > 1){
+      tie.wins += 1;
+      tie.points += Number(e.points);
+    }else if(e.players.length === 1){
+      const p = e.players[0];
+      if(!t[p]) t[p] = { wins:0, points:0 };
+      t[p].wins += 1;
+      t[p].points += Number(e.points);
+    }
+  });
+
+  return { players: t, tie };
+}
+
+function computeStandings(entries, allTimeEntries){
+  const { players: t, tie } = rawTotals(entries);
+  // Tiebreak reference: full history by default, or a specific point-in-time
+  // snapshot when the caller needs a locked-in historical result.
+  const allTime = rawTotals(allTimeEntries || state.entries).players;
+
+  const rows = Object.entries(t).map(([name, stat]) => ({
+    name,
+    wins: stat.wins,
+    points: stat.points,
+    isTie: false,
+    atWins: allTime[name] ? allTime[name].wins : 0,
+    atPoints: allTime[name] ? allTime[name].points : 0
+  }));
+  if(tie.wins > 0){
+    rows.push({ name: TIE_LABEL, wins: tie.wins, points: tie.points, isTie:true, atWins:0, atPoints:0 });
+  }
+
+  // Tiebreak order: 1) wins, 2) points, 3) all-time wins, 4) all-time points
+  rows.sort((a,b) =>
+    b.wins - a.wins ||
+    b.points - a.points ||
+    b.atWins - a.atWins ||
+    b.atPoints - a.atPoints
+  );
+  return rows;
+}
+
+function currentSeasonEntries(){
+  const key = seasonKey(todayISO());
+  return state.entries.filter(e => seasonKey(e.date) === key);
+}
+
+function computeTrophyCase(){
+  const currentKey = seasonKey(todayISO());
+  const seasonKeys = [...new Set(state.entries.map(e => seasonKey(e.date)))]
+    .filter(k => k !== currentKey)
+    .sort();
+
+  const seasonsWon = {};
+  state.players.forEach(p => seasonsWon[p] = []);
+
+  seasonKeys.forEach(key => {
+    const entries = state.entries.filter(e => seasonKey(e.date) === key);
+    // Locked-in snapshot: only entries dated through the end of THIS season count
+    // toward the all-time tiebreak, so later data never rewrites a past result.
+    const allTimeThroughSeason = state.entries.filter(e => seasonKey(e.date) <= key);
+    const rows = computeStandings(entries, allTimeThroughSeason).filter(r => !r.isTie);
+    if(rows.length === 0) return;
+    const top = rows[0];
+    if(top.wins === 0) return; // nobody won anything that season
+    // Champions are whoever fully matches the top row across every tiebreak level —
+    // in practice this is almost always exactly one person, since computeStandings
+    // already resolved wins/points/all-time-wins/all-time-points in sorted order.
+    const champions = rows.filter(r =>
+      r.wins === top.wins &&
+      r.points === top.points &&
+      r.atWins === top.atWins &&
+      r.atPoints === top.atPoints
+    );
+    champions.forEach(c => {
+      if(!seasonsWon[c.name]) seasonsWon[c.name] = [];
+      seasonsWon[c.name].push(key);
+    });
+  });
+
+  return Object.entries(seasonsWon)
+    .map(([name, seasons]) => ({ name, count: seasons.length, seasons }))
+    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+function record(){
+  if(state.entries.length === 0) return null;
+  const max = Math.max(...state.entries.map(e => Number(e.points)));
+  const holders = state.entries.filter(e => Number(e.points) === max);
+
+  const groups = {};
+  const order = [];
+  holders.forEach(h => {
+    const key = h.players.join(' & ');
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(h.date);
+  });
+
+  const parts = order.map(name => {
+    const dates = groups[name].sort().map(d => fmtShortDate(d));
+    return { name, dates };
+  });
+
+  return { max, parts };
+}
+
+function render(){
+  renderRecord();
+  renderSeasonBoard();
+  renderAllTimeBoard();
+  renderTrophyCase();
+  renderHistory();
+  if(selectedStatsPlayer) renderStatsBody(selectedStatsPlayer);
+}
+
+function renderRecord(){
+  const block = document.getElementById('record-block');
+  const rec = record();
+  if(!rec){
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = 'flex';
+  const parts = rec.parts.map(p => `${p.name} (${p.dates.join(', ')})`);
+  document.getElementById('record-value').textContent = `${rec.max} pts — ${parts.join(' · ')}`;
+}
+
+function renderBoardInto(bodyId, ranked, emptyText, getEliminated){
+  const eliminated = getEliminated || (() => false);
+  const body = document.getElementById(bodyId);
+  if(ranked.every(r => r.wins === 0 && r.points === 0)){
+    body.innerHTML = `<div class="empty">${emptyText}</div>`;
+    return;
+  }
+  body.innerHTML = ranked.map((r, i) => {
+    const isOut = eliminated(r);
+    return `
+      <div class="row ${i===0 && !r.isTie ? 'first' : ''} ${r.isTie ? 'tie-row' : ''} ${isOut ? 'eliminated-row' : ''}">
+        <div class="rank">${r.isTie ? '—' : i+1}</div>
+        <div class="name">${r.name}</div>
+        <div class="pts-block">
+          <div class="wins">${r.wins}<small> ${r.isTie ? 'tie'+(r.wins===1?'':'s') : 'win'+(r.wins===1?'':'s')}</small></div>
+          <div class="points-sub">${r.points} pt${r.points===1?'':'s'} total</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderSeasonBoard(){
+  const key = seasonKey(todayISO());
+  document.getElementById('season-title').textContent = `Season Standings — ${seasonLabel(key)}`;
+  const ranked = computeStandings(currentSeasonEntries());
+
+  const contenders = ranked.filter(r => !r.isTie);
+  const leaderWins = contenders.length ? Math.max(...contenders.map(r => r.wins)) : 0;
+  const { remaining } = daysRemainingInSeason();
+
+  const getEliminated = (r) => !r.isTie && (r.wins + remaining) < leaderWins;
+
+  renderBoardInto('season-board-body', ranked, 'No results logged yet this month.', getEliminated);
+
+  const hint = document.getElementById('season-hint');
+  if(hint){
+    hint.style.display = ranked.some(r => getEliminated(r)) ? 'block' : 'none';
+  }
+}
+
+function renderAllTimeBoard(){
+  const ranked = computeStandings(state.entries);
+  renderBoardInto('board-body', ranked, 'No results logged yet — add today\'s winner below.');
+}
+
+function renderTrophyCase(){
+  const body = document.getElementById('trophy-body');
+  const trophies = computeTrophyCase();
+  if(trophies.length === 0){
+    body.innerHTML = `<div class="empty">No completed seasons yet.</div>`;
+    return;
+  }
+  body.innerHTML = trophies.map((t, i) => {
+    const seasonList = t.seasons.map(s => seasonLabel(s)).join(', ');
+    return `
+    <div class="trophy-row ${t.count > 0 ? 'clickable' : ''}" ${t.count > 0 ? `onclick="toggleTrophyDetail(${i})"` : ''}>
+      <div class="trophy-name">${t.name}</div>
+      <div class="trophy-count ${t.count===0 ? 'zero' : ''}">${t.count > 0 ? '🏆 × ' + t.count : '—'}</div>
+    </div>
+    ${t.count > 0 ? `<div class="trophy-detail" id="trophy-detail-${i}">${seasonList}</div>` : ''}
+  `;
+  }).join('');
+}
+
+function toggleTrophyDetail(i){
+  const el = document.getElementById(`trophy-detail-${i}`);
+  if(el) el.classList.toggle('open');
+}
+
+function renderHistory(){
+  const body = document.getElementById('history-body');
+  if(state.entries.length === 0){
+    body.innerHTML = `<div class="empty">Nothing logged yet.</div>`;
+    return;
+  }
+  const sorted = [...state.entries].sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+  body.innerHTML = sorted.map(e => `
+    <div class="h-row">
+      <div class="h-date">${e.date.slice(5)}</div>
+      <div>
+        <div>${e.players.join(' & ')}${e.players.length > 1 ? '<span class="tie-tag">TIE</span>' : ''}</div>
+      </div>
+      <div class="h-pts">+${e.points}</div>
+      ${isAdmin ? `<button class="danger" onclick="removeEntry(${e.id})">Remove</button>` : '<div></div>'}
+    </div>
+  `).join('');
+}
+
+async function removeEntry(id){
+  state.entries = state.entries.filter(e => e.id !== id);
+  render();
+  // Tell save() this id was deleted on purpose, so the merge step doesn't
+  // pull it back in from whatever's still sitting on the remote copy.
+  await save([id]);
+}
+
+function parseWordleScore(text){
+  const m = text.match(/Wordle[^\n]*?(X|\d{1,2})\s*\/\s*6/i);
+  if(!m) return null;
+  const g = m[1];
+  if(/^x$/i.test(g)) return { solved:false, guesses:null, points:0 };
+  const guesses = Number(g);
+  if(guesses < 1 || guesses > 6) return null;
+  return { solved:true, guesses, points: 7 - guesses };
+}
+
+function parseConnectionsScore(text){
+  const idx = text.search(/connections/i);
+  if(idx === -1) return null;
+  const after = text.slice(idx);
+  const lines = after.split('\n').map(l => l.trim()).filter(Boolean);
+  const rowRegex = /^[\u{1F7E8}\u{1F7E9}\u{1F7E6}\u{1F7EA}]{4}$/u; // 🟨🟩🟦🟪
+  const rows = [];
+  for(const line of lines){
+    if(rowRegex.test(line)){
+      rows.push(line);
+    }else if(rows.length > 0){
+      break; // stop once rows have started and we hit a non-row line
+    }
+    // otherwise keep skipping header / puzzle-number lines before rows begin
+  }
+  if(rows.length === 0) return null;
+
+  const solvedColors = new Set();
+  let mistakes = 0;
+  let gameOver = false;
+  for(const row of rows){
+    const chars = [...row];
+    const allSame = chars.every(c => c === chars[0]);
+    if(allSame){
+      solvedColors.add(chars[0]);
+    }else{
+      mistakes++;
+      if(mistakes >= 4){ gameOver = true; break; }
+    }
+  }
+  const solved = solvedColors.size === 4 && !gameOver;
+  return { solved, mistakes: Math.min(mistakes, 4), points: solved ? (5 - mistakes) : 0 };
+}
+
+// Pulls out the little emoji grid(s) from a raw Wordle/Connections paste,
+// so we can show it back to the group instead of just the numeric score.
+// A paste can contain both games' grids in either order (people paste
+// however they want) — this always returns Wordle before Connections,
+// regardless of which order they appear in the raw text, by classifying
+// each block on its row width (5 tiles = Wordle, 4 tiles = Connections).
+function extractEmojiBlocks(raw){
+  const lines = raw.split('\n').map(l => l.trim());
+  const blocks = [];
+  let current = [];
+  lines.forEach(line => {
+    if(line && SQUARE_LINE_RE.test(line)){
+      current.push(line);
+    }else if(current.length){
+      blocks.push(current.join('\n'));
+      current = [];
+    }
+  });
+  if(current.length) blocks.push(current.join('\n'));
+
+  const ORDER = { wordle: 0, connections: 1, unknown: 2 };
+  return blocks
+    .map(block => ({ block, type: classifyEmojiBlock(block) }))
+    .sort((a, b) => ORDER[a.type] - ORDER[b.type]) // stable — ties keep original order
+    .map(entry => entry.block);
+}
+
+// A block is Wordle if its first row is 5 tiles wide, Connections if 4
+// tiles wide (matches the fixed grid widths of each game).
+function classifyEmojiBlock(block){
+  const firstLine = block.split('\n')[0] || '';
+  const tileCount = (firstLine.match(SQUARE_TOKEN_RE) || []).length;
+  if(tileCount === 5) return 'wordle';
+  if(tileCount === 4) return 'connections';
+  return 'unknown';
+}
+
+async function bulkImport(){
+  const raw = document.getElementById('f-bulk').value;
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if(lines.length === 0){
+    showBulkMsg('Paste some lines first.');
+    return;
+  }
+  const errors = [];
+  let added = 0;
+  lines.forEach(line => {
+    const parsed = parseBulkLine(line);
+    if(!parsed){ return; }
+    if(parsed.error){ errors.push(parsed.error); return; }
+    state.entries.push({ id: Date.now() + added, date: parsed.date, players: parsed.players, points: parsed.points });
+    markFinalized(parsed.date);
+    added++;
+  });
+
+  render();
+  await save();
+
+  if(errors.length){
+    showBulkMsg(`Added ${added}. ${errors.length} line(s) skipped — check formatting.`);
+  }else{
+    showBulkMsg(`Added ${added} result${added===1?'':'s'}.`);
+    document.getElementById('f-bulk').value = '';
+  }
+}
+
+function showBulkMsg(text){
+  const m = document.getElementById('bulk-msg');
+  m.textContent = text;
+}
+
+// ---- Submit Score tab ----
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.getElementById('panel-submit').classList.toggle('active', name === 'submit');
+  document.getElementById('panel-standings').classList.toggle('active', name === 'standings');
+  document.getElementById('panel-stats').classList.toggle('active', name === 'stats');
+}
+
+function renderSubmitPicker(){
+  const el = document.getElementById('who-picker');
+  el.innerHTML = state.players.map(p => `<div class="chip" data-player="${p}" onclick="selectSubmitter('${p}')">${p}</div>`).join('');
+  renderSubmitStatus();
+}
+
+function changeSubmitDate(){
+  selectedSubmitDate = document.getElementById('f-submit-date').value || todayISO();
+  selectedSubmitter = null;
+  document.getElementById('submit-form-body').style.display = 'none';
+  document.querySelectorAll('#who-picker .chip').forEach(c => c.classList.remove('selected'));
+  renderSubmitStatus();
+}
+
+function renderSubmitStatus(){
+  const el = document.getElementById('submit-status');
+  const date = selectedSubmitDate;
+  const isToday = date === todayISO();
+  const subsForDate = submissionsForDate(date);
+  const submittedNames = new Set(subsForDate.map(s => s.player));
+  const finalized = (state.finalizedDates || []).includes(date);
+  const lines = state.players.map(p => submittedNames.has(p) ? `<span class="done">✓ ${p}</span>` : `${p} — waiting`);
+  const finalizedNote = finalized
+    ? `<br><br>${isToday ? "Today's" : "That day's"} winner has been calculated. You can still add or update scores for this day — the winner will be recalculated.`
+    : '';
+  el.innerHTML = lines.join(' &nbsp;·&nbsp; ') + finalizedNote;
+
+  document.querySelectorAll('#who-picker .chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.player === selectedSubmitter);
+  });
+
+  renderTodayResults(subsForDate);
+}
+
+function renderTodayResults(subsToday){
+  const block = document.getElementById('today-results-block');
+  const body = document.getElementById('today-results-body');
+  const titleEl = document.getElementById('today-results-title');
+  if(titleEl){
+    const isToday = selectedSubmitDate === todayISO();
+    titleEl.textContent = isToday ? "Today's Results" : `Results — ${fmtShortDate(selectedSubmitDate)}`;
+  }
+  if(!subsToday || subsToday.length === 0){
+    block.style.display = 'none';
+    body.innerHTML = '';
+    return;
+  }
+  block.style.display = 'block';
+
+  const sorted = [...subsToday].sort((a,b) => b.totalPoints - a.totalPoints);
+  const topScore = sorted[0].totalPoints;
+
+  body.innerHTML = sorted.map(s => {
+    const breakdownParts = [];
+    if(s.wordlePoints !== null && s.wordlePoints !== undefined){
+      breakdownParts.push(`Wordle: ${s.wordlePoints} pt${s.wordlePoints===1?'':'s'}`);
+    }
+    if(s.connectionsPoints !== null && s.connectionsPoints !== undefined){
+      breakdownParts.push(`Connections: ${s.connectionsPoints} pt${s.connectionsPoints===1?'':'s'}`);
+    }
+    // New submissions store rawWordle/rawConnections separately; fall back
+    // to the old combined "raw" field for submissions saved before the
+    // paste box was split, so old entries still show their emoji grid.
+    const combinedRaw = (s.rawWordle || s.rawConnections)
+      ? [s.rawWordle, s.rawConnections].filter(Boolean).join('\n')
+      : (s.raw || '');
+    const emojiBlocks = combinedRaw ? extractEmojiBlocks(combinedRaw) : [];
+    const emojiHtml = emojiBlocks.length
+      ? `<pre class="result-emoji">${emojiBlocks.join('\n\n')}</pre>`
+      : '';
+    return `
+      <div class="result-card ${s.totalPoints === topScore ? 'first-place' : ''}">
+        <div class="result-header">
+          <div class="result-name">${s.player}</div>
+          <div class="result-total">${s.totalPoints} pt${s.totalPoints===1?'':'s'}</div>
+        </div>
+        ${breakdownParts.length ? `<div class="result-breakdown">${breakdownParts.map(p => `<span>${p}</span>`).join('')}</div>` : ''}
+        ${emojiHtml}
+      </div>`;
+  }).join('');
+}
+
+function selectSubmitter(player){
+  selectedSubmitter = player;
+  document.querySelectorAll('#who-picker .chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.player === player);
+  });
+  document.getElementById('submit-form-body').style.display = 'block';
+
+  // Pre-fill if this player already submitted for the selected date, so
+  // re-tapping their name lets them review/edit rather than starting blank.
+  const existing = submissionsForDate(selectedSubmitDate).find(s => s.player === player);
+  // Old submissions (before the paste box was split) only have a combined
+  // "raw" field — drop that into the Wordle box on edit so it isn't lost.
+  const hasSplitRaw = existing && (existing.rawWordle || existing.rawConnections);
+  const legacyRaw = existing && !hasSplitRaw ? (existing.raw || '') : '';
+  document.getElementById('f-submit-wordle').value = existing ? (existing.rawWordle || legacyRaw) : '';
+  document.getElementById('f-submit-connections').value = existing ? (existing.rawConnections || '') : '';
+  document.getElementById('f-submit-points').value = existing && !hasSplitRaw && !legacyRaw ? existing.totalPoints : '';
+  updateSubmitPreview();
+}
+
+function updateSubmitPreview(){
+  const wordleText = document.getElementById('f-submit-wordle').value;
+  const connectionsText = document.getElementById('f-submit-connections').value;
+  const manualPoints = document.getElementById('f-submit-points').value;
+  const previewEl = document.getElementById('submit-preview');
+
+  if(wordleText.trim() || connectionsText.trim()){
+    const wordle = wordleText.trim() ? parseWordleScore(wordleText) : null;
+    const connections = connectionsText.trim() ? parseConnectionsScore(connectionsText) : null;
+
+    const errors = [];
+    if(wordleText.trim() && !wordle) errors.push("Couldn't recognize a Wordle result in that box.");
+    if(connectionsText.trim() && !connections) errors.push("Couldn't recognize a Connections result in that box.");
+    if(errors.length){
+      previewEl.innerHTML = `<div class="calc-error">${errors.join(' ')} You can type your points instead below.</div>`;
+      return;
+    }
+
+    let total = 0;
+    let html = '';
+    if(wordle){
+      total += wordle.points;
+      const detail = wordle.solved ? `solved in ${wordle.guesses}/6` : `not solved (X/6)`;
+      html += `<div class="calc-line"><span>Wordle (${detail})</span><span>${wordle.points} pt${wordle.points===1?'':'s'}</span></div>`;
+    }
+    if(connections){
+      total += connections.points;
+      const detail = connections.solved ? `solved, ${connections.mistakes} mistake${connections.mistakes===1?'':'s'}` : `not solved`;
+      html += `<div class="calc-line"><span>Connections (${detail})</span><span>${connections.points} pt${connections.points===1?'':'s'}</span></div>`;
+    }
+    html += `<div class="calc-total"><span>Total</span><span>${total} pt${total===1?'':'s'}</span></div>`;
+    previewEl.innerHTML = html;
+  }else if(manualPoints !== ''){
+    previewEl.innerHTML = `<div class="calc-total"><span>Total</span><span>${Number(manualPoints)} pt${Number(manualPoints)===1?'':'s'}</span></div>`;
+  }else{
+    previewEl.innerHTML = '';
+  }
+}
+
+async function submitScore(){
+  if(!selectedSubmitter){
+    showSubmitMsg('Tap your name first.');
+    return;
+  }
+  const wordleText = document.getElementById('f-submit-wordle').value;
+  const connectionsText = document.getElementById('f-submit-connections').value;
+  const manualPoints = document.getElementById('f-submit-points').value;
+
+  let wordle = null, connections = null, total = null;
+  if(wordleText.trim() || connectionsText.trim()){
+    wordle = wordleText.trim() ? parseWordleScore(wordleText) : null;
+    connections = connectionsText.trim() ? parseConnectionsScore(connectionsText) : null;
+    if((wordleText.trim() && !wordle) || (connectionsText.trim() && !connections)){
+      showSubmitMsg('Could not read that paste — try typing your points instead.');
+      return;
+    }
+    total = (wordle ? wordle.points : 0) + (connections ? connections.points : 0);
+  }else if(manualPoints !== ''){
+    total = Number(manualPoints);
+    if(Number.isNaN(total)){
+      showSubmitMsg('Points must be a number.');
+      return;
+    }
+  }else{
+    showSubmitMsg('Paste your results or enter your points.');
+    return;
+  }
+
+  const date = selectedSubmitDate;
+
+  const entry = {
+    date,
+    player: selectedSubmitter,
+    rawWordle: wordleText.trim() || null,
+    rawConnections: connectionsText.trim() || null,
+    wordlePoints: wordle ? wordle.points : null,
+    connectionsPoints: connections ? connections.points : null,
+    totalPoints: total,
+    submittedAt: new Date().toISOString()
+  };
+  const idx = state.submissions.findIndex(s => s.date === date && s.player === selectedSubmitter);
+  if(idx >= 0) state.submissions[idx] = entry; else state.submissions.push(entry);
+
+  // Only lock in a winner once everyone in the group has submitted for this
+  // date, or the date has already passed (same gate finalizeCheck() uses).
+  // This was the bug: previously we finalized on every submission, so the
+  // first person in would immediately become the "winner" for the day.
+  // Past/already-finalized dates still get recalculated right away here,
+  // so late corrections to old scores keep working as before.
+  const subsForDate = submissionsForDate(date);
+  const isPast = date < todayISO();
+  const allIn = subsForDate.length >= state.players.length;
+  const readyToFinalize = isPast || allIn || (state.finalizedDates || []).includes(date);
+
+  let winnerSet = false;
+  if(readyToFinalize){
+    markFinalized(date);
+    winnerSet = upsertEntryForDate(date);
+  }
+
+  renderSubmitStatus();
+  render();
+  await save();
+
+  showSubmitMsg(winnerSet
+    ? `Score submitted! ${date === todayISO() ? "Today's" : "That day's"} winner has been recalculated.`
+    : 'Score submitted! Waiting on the rest of the group.');
+}
+
+function showSubmitMsg(text){
+  const m = document.getElementById('submit-msg');
+  m.textContent = text;
+  setTimeout(() => { if(m.textContent === text) m.textContent = ''; }, 2500);
+}
+
+// ---- Stats tab ----
+
+function renderStatsPicker(){
+  const el = document.getElementById('stats-picker');
+  el.innerHTML = state.players.map(p => `<div class="chip" data-player="${p}" onclick="selectStatsPlayer('${p}')">${p}</div>`).join('');
+}
+
+function selectStatsPlayer(player){
+  selectedStatsPlayer = player;
+  document.querySelectorAll('#stats-picker .chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.player === player);
+  });
+  renderStatsBody(player);
+}
+
+// Pulls every submission for a player, sorted oldest -> newest, and derives
+// solved/guesses/mistakes per game from the stored points fields. This
+// works whether the submission came from a pasted share (raw + points) or
+// a manual point entry (points only, so wordle/connections-specific fields
+// stay null and those games are simply skipped for game-specific stats).
+function playerSubmissions(player){
+  return state.submissions
+    .filter(s => s.player === player)
+    .slice()
+    .sort((a,b) => a.date.localeCompare(b.date));
+}
+
+function computePlayerStats(player){
+  const subs = playerSubmissions(player);
+
+  const wordleGames = subs
+    .filter(s => s.wordlePoints !== null && s.wordlePoints !== undefined)
+    .map(s => {
+      const solved = s.wordlePoints > 0;
+      return { date: s.date, solved, guesses: solved ? (7 - s.wordlePoints) : null };
+    });
+
+  const connectionsGames = subs
+    .filter(s => s.connectionsPoints !== null && s.connectionsPoints !== undefined)
+    .map(s => {
+      const solved = s.connectionsPoints > 0;
+      return { date: s.date, solved, mistakes: solved ? (5 - s.connectionsPoints) : 4 };
+    });
+
+  // Wordle guess distribution (1-6, plus fails)
+  const guessDist = [0,0,0,0,0,0]; // index 0 = 1 guess ... index 5 = 6 guesses
+  let wordleFails = 0;
+  wordleGames.forEach(g => {
+    if(g.solved) guessDist[g.guesses - 1]++;
+    else wordleFails++;
+  });
+  const wordleSolved = wordleGames.length - wordleFails;
+  const wordleSolveRate = wordleGames.length ? wordleSolved / wordleGames.length : null;
+  const wordleAvgGuesses = wordleSolved
+    ? wordleGames.filter(g => g.solved).reduce((sum,g) => sum + g.guesses, 0) / wordleSolved
+    : null;
+
+  // Connections
+  const connectionsPerfect = connectionsGames.filter(g => g.solved && g.mistakes === 0).length;
+  const connectionsPerfectRate = connectionsGames.length ? connectionsPerfect / connectionsGames.length : null;
+  const connectionsAvgMistakes = connectionsGames.length
+    ? connectionsGames.reduce((sum,g) => sum + g.mistakes, 0) / connectionsGames.length
+    : null;
+
+  // Best single day + average points (across all submissions, any type)
+  let bestDay = null;
+  let pointsSum = 0;
+  subs.forEach(s => {
+    pointsSum += s.totalPoints;
+    if(!bestDay || s.totalPoints > bestDay.totalPoints) bestDay = s;
+  });
+  const avgPoints = subs.length ? pointsSum / subs.length : null;
+
+  // Longest streaks: Wordle solves, Connections perfect solves, and days
+  // submitted on consecutive calendar days. A streak breaks the moment a
+  // date isn't exactly one day after the previous qualifying date.
+  function longestStreak(items, qualifies){
+    let longest = 0, current = 0, currentRun = 0, longestRun = 0;
+    let prevDate = null;
+    items.forEach(item => {
+      const ok = qualifies(item);
+      if(ok && prevDate !== null && daysBetweenISO(prevDate, item.date) === 1){
+        currentRun++;
+      }else if(ok){
+        currentRun = 1;
+      }else{
+        currentRun = 0;
+      }
+      if(ok){
+        longestRun = Math.max(longestRun, currentRun);
+        prevDate = item.date;
+      }else{
+        prevDate = null; // any non-qualifying day resets the chain entirely
+      }
+    });
+    return longestRun;
+  }
+  // Current streak = qualifying run ending on the player's most recent
+  // relevant submission (not necessarily today).
+  function currentStreak(items, qualifies){
+    let run = 0;
+    let prevDate = null;
+    for(let i = items.length - 1; i >= 0; i--){
+      const item = items[i];
+      if(!qualifies(item)) break;
+      if(prevDate === null || daysBetweenISO(item.date, prevDate) === 1){
+        run++;
+        prevDate = item.date;
+      }else{
+        break;
+      }
+    }
+    return run;
+  }
+
+  const wordleStreakLongest = longestStreak(wordleGames, g => g.solved);
+  const wordleStreakCurrent = currentStreak(wordleGames, g => g.solved);
+  const connectionsStreakLongest = longestStreak(connectionsGames, g => g.solved && g.mistakes === 0);
+  const connectionsStreakCurrent = currentStreak(connectionsGames, g => g.solved && g.mistakes === 0);
+
+  // Signature day: day of week with the best average points (min 2 games
+  // played that day so a single lucky Tuesday doesn't dominate).
+  const byDow = Array.from({length:7}, () => ({sum:0, count:0}));
+  subs.forEach(s => {
+    const dow = dayOfWeekFromISO(s.date);
+    byDow[dow].sum += s.totalPoints;
+    byDow[dow].count++;
+  });
+  let signatureDay = null;
+  byDow.forEach((d, i) => {
+    if(d.count >= 2){
+      const avg = d.sum / d.count;
+      if(!signatureDay || avg > signatureDay.avg){
+        signatureDay = { day: DAY_NAMES[i], avg, count: d.count };
+      }
+    }
+  });
+
+  // Current form: average of the last 7 submissions vs. career average.
+  const recentWindow = subs.slice(-7);
+  const recentAvg = recentWindow.length
+    ? recentWindow.reduce((sum,s) => sum + s.totalPoints, 0) / recentWindow.length
+    : null;
+  const formDelta = (recentAvg !== null && avgPoints !== null) ? recentAvg - avgPoints : null;
+
+  return {
+    player,
+    gamesPlayed: subs.length,
+    wordle: {
+      played: wordleGames.length,
+      guessDist,
+      fails: wordleFails,
+      solveRate: wordleSolveRate,
+      avgGuesses: wordleAvgGuesses,
+      streakLongest: wordleStreakLongest,
+      streakCurrent: wordleStreakCurrent
+    },
+    connections: {
+      played: connectionsGames.length,
+      perfectRate: connectionsPerfectRate,
+      avgMistakes: connectionsAvgMistakes,
+      streakLongest: connectionsStreakLongest,
+      streakCurrent: connectionsStreakCurrent
+    },
+    bestDay,
+    avgPoints,
+    signatureDay,
+    form: { recentAvg, careerAvg: avgPoints, delta: formDelta, window: recentWindow.length }
+  };
+}
+
+function pct(x){
+  return x === null ? '—' : `${Math.round(x * 100)}%`;
+}
+function num(x, digits){
+  return x === null ? '—' : x.toFixed(digits === undefined ? 1 : digits);
+}
+
+function renderStatsBody(player){
+  const body = document.getElementById('stats-body');
+  const s = computePlayerStats(player);
+
+  if(s.gamesPlayed === 0){
+    body.innerHTML = `<div class="stats-empty">${player} hasn't submitted any scores yet.</div>`;
+    return;
+  }
+
+  const distMax = Math.max(1, ...s.wordle.guessDist, s.wordle.fails);
+  const distBars = s.wordle.guessDist.map((count, i) => `
+    <div class="dist-bar-col">
+      <div class="dist-count">${count}</div>
+      <div class="dist-bar" style="height:${count ? (count/distMax*100) : 1}%"></div>
+      <div class="dist-label">${i+1}</div>
+    </div>`).join('') + `
+    <div class="dist-bar-col fail">
+      <div class="dist-count">${s.wordle.fails}</div>
+      <div class="dist-bar" style="height:${s.wordle.fails ? (s.wordle.fails/distMax*100) : 1}%"></div>
+      <div class="dist-label">X</div>
+    </div>`;
+
+  const formLine = s.form.delta === null
+    ? 'Not enough data yet'
+    : `${s.form.delta >= 0 ? '+' : ''}${s.form.delta.toFixed(1)} pts vs. career avg (${num(s.form.careerAvg)})`;
+
+  body.innerHTML = `
+    <div class="stat-card wide">
+      <div class="stat-label">Wordle Guess Distribution</div>
+      ${s.wordle.played ? `<div class="dist-bars">${distBars}</div>` : `<div class="stat-sub">No Wordle results submitted yet.</div>`}
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Wordle Solve Rate</div>
+      <div class="stat-value">${pct(s.wordle.solveRate)}</div>
+      <div class="stat-sub">${s.wordle.played} played</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Wordle Avg Guesses</div>
+      <div class="stat-value">${num(s.wordle.avgGuesses)}</div>
+      <div class="stat-sub">on solved days</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Connections Perfect Rate</div>
+      <div class="stat-value">${pct(s.connections.perfectRate)}</div>
+      <div class="stat-sub">${s.connections.played} played</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Connections Avg Mistakes</div>
+      <div class="stat-value">${num(s.connections.avgMistakes)}</div>
+      <div class="stat-sub">per puzzle</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Longest Wordle Streak</div>
+      <div class="stat-value">${s.wordle.streakLongest}</div>
+      <div class="stat-sub">current: ${s.wordle.streakCurrent}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Longest Connections Streak</div>
+      <div class="stat-value">${s.connections.streakLongest}</div>
+      <div class="stat-sub">current: ${s.connections.streakCurrent}</div>
+    </div>
+
+    <div class="stat-card wide">
+      <div class="stat-label">Best Single Day</div>
+      <div class="stat-value">${s.bestDay ? `${s.bestDay.totalPoints} pts` : '—'}</div>
+      <div class="stat-sub">${s.bestDay ? fmtShortDate(s.bestDay.date) : ''}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Average Points</div>
+      <div class="stat-value">${num(s.avgPoints)}</div>
+      <div class="stat-sub">across ${s.gamesPlayed} day${s.gamesPlayed===1?'':'s'}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Signature Day</div>
+      <div class="stat-value">${s.signatureDay ? s.signatureDay.day : '—'}</div>
+      <div class="stat-sub">${s.signatureDay ? `${num(s.signatureDay.avg)} avg pts (${s.signatureDay.count} days)` : 'not enough data yet'}</div>
+    </div>
+
+    <div class="stat-card wide">
+      <div class="stat-label">Current Form</div>
+      <div class="stat-value">${s.form.recentAvg !== null ? num(s.form.recentAvg) : '—'}</div>
+      <div class="stat-sub">last ${s.form.window} day${s.form.window===1?'':'s'} · ${formLine}</div>
+    </div>
+  `;
+}
+
+document.getElementById('bulk-btn').addEventListener('click', bulkImport);
+document.getElementById('admin-btn').addEventListener('click', toggleAdmin);
+document.getElementById('submit-score-btn').addEventListener('click', submitScore);
+document.getElementById('f-submit-wordle').addEventListener('input', updateSubmitPreview);
+document.getElementById('f-submit-connections').addEventListener('input', updateSubmitPreview);
+document.getElementById('f-submit-points').addEventListener('input', updateSubmitPreview);
+document.getElementById('f-submit-date').addEventListener('change', changeSubmitDate);
+
+load();
+</script>
+</body>
+</html>

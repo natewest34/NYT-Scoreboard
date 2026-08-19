@@ -825,13 +825,28 @@ async function save(deletedEntryIds){
 // "finalized" — so past scores can be added or corrected later and the
 // standings just pick up the new result instead of staying locked forever.
 function upsertEntryForDate(date){
-  state.entries = state.entries.filter(e => e.date !== date);
   const subs = submissionsForDate(date);
-  if(subs.length === 0) return false;
+  if(subs.length === 0){
+    state.entries = state.entries.filter(e => e.date !== date);
+    return false;
+  }
 
   const max = Math.max(...subs.map(s => s.totalPoints));
   const tied = subs.filter(s => s.totalPoints === max).map(s => s.player);
-  const winner = tied.length > 1 ? tied[Math.floor(Math.random() * tied.length)] : tied[0];
+
+  // Tiebreaker lock: if this date already has a winner on record and that
+  // player is still tied for the (possibly updated) top score, keep them —
+  // don't re-roll. A random pick should only ever happen the first time a
+  // date is decided, or if a correction knocks the prior winner out of the
+  // tie entirely. Without this, every later correction/merge/backstop pass
+  // through this function would re-randomize who "won" that day.
+  const existing = state.entries.find(e => e.date === date);
+  const priorWinner = existing && existing.players[0];
+  const winner = (priorWinner && tied.includes(priorWinner))
+    ? priorWinner
+    : (tied.length > 1 ? tied[Math.floor(Math.random() * tied.length)] : tied[0]);
+
+  state.entries = state.entries.filter(e => e.date !== date);
   state.entries.push({
     id: Date.now() + Math.floor(Math.random() * 1000),
     date,

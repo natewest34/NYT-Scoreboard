@@ -630,19 +630,6 @@
       <div id="today-results-body"></div>
     </div>
 
-    <div class="entry" id="bulk-block">
-      <div class="entry-title">Bulk Import</div>
-      <div class="hint" style="margin-bottom:10px;">Paste lines like: <code>7/13/26 Michaela (10 points)</code> or <code>6/29/26 Michaela, Thomas (8 pts)</code> — one per line.</div>
-      <div class="field">
-        <label for="f-bulk">Lines</label>
-        <textarea id="f-bulk" rows="6" style="width:100%; box-sizing:border-box; resize:vertical; font-family:'Source Serif 4', Georgia, serif; font-size:15px; padding:9px 8px; border:1px solid var(--ink); background:var(--paper); color:var(--ink);"></textarea>
-      </div>
-      <div class="add-row">
-        <button id="bulk-btn">Import lines</button>
-      </div>
-      <div class="msg" id="bulk-msg"></div>
-    </div>
-
     <div class="history">
       <div class="board-title">Recent Log</div>
       <div class="history-list" id="history-body"><div class="loading">Loading log…</div></div>
@@ -693,7 +680,6 @@
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
 const TIE_LABEL = 'Ties';
-const NICKNAMES = { 'nate': 'Nathan' };
 // Matches a line made up entirely of the colored/black/white square emoji
 // used in Wordle (⬛⬜🟩🟨 or the colorblind 🟧🟦 variant) and Connections
 // (🟨🟩🟦🟪) share-text pastes, so we can pull the little grid back out
@@ -752,8 +738,8 @@ function mergeState(base, remote, deletedEntryIds){
     if(!baseS || baseS.submittedAt !== s.submittedAt) changedDates.add(s.date);
   });
 
-  // Entries: union by id (covers bulk-import entries, which have no
-  // backing submission and can't be recomputed from submissions below).
+  // Entries: union by id (covers entries with no backing submission,
+  // which can't be recomputed from submissions below).
   // A plain union has no concept of deletion — if remote still has an id
   // we just removed locally (e.g. via the admin Remove button), it would
   // otherwise get merged straight back in. `deleted` is how the caller
@@ -790,8 +776,8 @@ function reconcileDate(date){
 // Find any date left with more than one entry after merging so save() can
 // force a clean recompute. Restricted to dates that have backing
 // submissions, since upsertEntryForDate() has no way to reconstruct a
-// submission-less Bulk Import entry — calling it on a bulk-only date would
-// just delete the entries instead of fixing them.
+// submission-less entry — calling it on such a date would just delete
+// the entries instead of fixing them.
 function datesWithDuplicateEntries(mergedState){
   const seen = new Set();
   const dupes = new Set();
@@ -897,41 +883,6 @@ function todayISO(){
 function fmtDateLabel(){
   const d = new Date();
   return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-}
-
-function resolveName(raw){
-  const trimmed = raw.trim();
-  const lower = trimmed.toLowerCase();
-  if(NICKNAMES[lower]) return NICKNAMES[lower];
-  const match = state.players.find(p => p.toLowerCase() === lower);
-  if(match) return match;
-  // not a known player — title-case whatever was typed and add them to roster
-  const titled = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-  if(!state.players.includes(titled)) state.players.push(titled);
-  return titled;
-}
-
-function parseDate(raw){
-  const parts = raw.trim().split('/');
-  if(parts.length !== 3) return null;
-  let [m, d, y] = parts.map(x => x.trim());
-  if(y.length === 2) y = '20' + y;
-  m = m.padStart(2,'0'); d = d.padStart(2,'0');
-  if(Number(m) < 1 || Number(m) > 12 || Number(d) < 1 || Number(d) > 31) return null;
-  return `${y}-${m}-${d}`;
-}
-
-function parseBulkLine(line){
-  const cleaned = line.trim();
-  if(!cleaned) return null;
-  const m = cleaned.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})\s*:?\s+(.+?)\s*\(\s*(\d+)\s*(?:points?|pts?)\s*\)\s*$/i);
-  if(!m) return { error: `Could not parse: "${cleaned}"` };
-  const iso = parseDate(m[1]);
-  if(!iso) return { error: `Bad date: "${cleaned}"` };
-  const names = m[2].split(',').map(n => resolveName(n));
-  const points = Number(m[3]);
-  if(names.length === 0 || Number.isNaN(points)) return { error: `Could not parse: "${cleaned}"` };
-  return { date: iso, players: names, points };
 }
 
 function fmtShortDate(iso){
@@ -1333,40 +1284,6 @@ function classifyEmojiBlock(block){
   if(tileCount === 5) return 'wordle';
   if(tileCount === 4) return 'connections';
   return 'unknown';
-}
-
-async function bulkImport(){
-  const raw = document.getElementById('f-bulk').value;
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-  if(lines.length === 0){
-    showBulkMsg('Paste some lines first.');
-    return;
-  }
-  const errors = [];
-  let added = 0;
-  lines.forEach(line => {
-    const parsed = parseBulkLine(line);
-    if(!parsed){ return; }
-    if(parsed.error){ errors.push(parsed.error); return; }
-    state.entries.push({ id: Date.now() + added, date: parsed.date, players: parsed.players, points: parsed.points });
-    markFinalized(parsed.date);
-    added++;
-  });
-
-  render();
-  await save();
-
-  if(errors.length){
-    showBulkMsg(`Added ${added}. ${errors.length} line(s) skipped — check formatting.`);
-  }else{
-    showBulkMsg(`Added ${added} result${added===1?'':'s'}.`);
-    document.getElementById('f-bulk').value = '';
-  }
-}
-
-function showBulkMsg(text){
-  const m = document.getElementById('bulk-msg');
-  m.textContent = text;
 }
 
 // ---- Submit Score tab ----
@@ -1867,7 +1784,6 @@ function renderStatsBody(player){
   `;
 }
 
-document.getElementById('bulk-btn').addEventListener('click', bulkImport);
 document.getElementById('admin-btn').addEventListener('click', toggleAdmin);
 document.getElementById('submit-score-btn').addEventListener('click', submitScore);
 document.getElementById('f-submit-wordle').addEventListener('input', updateSubmitPreview);

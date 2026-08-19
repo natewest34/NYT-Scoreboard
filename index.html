@@ -781,12 +781,35 @@ function reconcileDate(date){
   }
 }
 
+// mergeState() dedupes entries by id, but upsertEntryForDate() always mints
+// a fresh id when it recomputes a date's winner. If a date already had an
+// entry on the remote copy (e.g. a past-date correction, or two people
+// finishing near-simultaneously and each finalizing locally), the old
+// remote entry and the new local entry have different ids and BOTH survive
+// the union — a silent duplicate that double-counts that date's win/points.
+// Find any date left with more than one entry after merging so save() can
+// force a clean recompute. Restricted to dates that have backing
+// submissions, since upsertEntryForDate() has no way to reconstruct a
+// submission-less Bulk Import entry — calling it on a bulk-only date would
+// just delete the entries instead of fixing them.
+function datesWithDuplicateEntries(mergedState){
+  const seen = new Set();
+  const dupes = new Set();
+  mergedState.entries.forEach(e => {
+    if(seen.has(e.date)) dupes.add(e.date);
+    seen.add(e.date);
+  });
+  const withSubs = new Set(mergedState.submissions.map(s => s.date));
+  return new Set([...dupes].filter(d => withSubs.has(d)));
+}
+
 async function save(deletedEntryIds){
   try{
     const remote = await fetchRemoteState();
     const { state: mergedState, changedDates } = mergeState(state, remote, deletedEntryIds);
     state = mergedState;
-    changedDates.forEach(reconcileDate);
+    const dupDates = datesWithDuplicateEntries(state);
+    new Set([...changedDates, ...dupDates]).forEach(reconcileDate);
 
     const res = await fetch(JSONBIN_URL, {
       method: 'PUT',

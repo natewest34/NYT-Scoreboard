@@ -6,6 +6,6 @@
 // which is an acceptable tradeoff for a small friend-group scoreboard.
 
 const JSONBIN_API_KEY = '$2a$10$xxQoEgOVxbW6G200N8HNse4gX/XCiTI9QPXiJFCUTT0e5tjs0XTla';
-const JSONBIN_BIN_ID = '6a5da882da38895dfe7475d3';
+const JSONBIN_BIN_ID = '6a860e29da38895dfef88ca5';
 
 const DEFAULT_PLAYERS = ['Tanner', 'Thomas', 'Nathan', 'Jake', 'Michaela'];
